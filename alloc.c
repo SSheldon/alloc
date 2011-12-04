@@ -71,8 +71,6 @@ void *slab_alloc_block(struct slab_data *slab)
 	}
 	else slab->first_free = free_data->next;
 	slab->alloc_blocks++;
-	if (slab->alloc_blocks == slab->block_count)
-		head_slabs[0] = NULL;
 	return free_data;
 }
 
@@ -106,9 +104,8 @@ void slab_free_block(struct slab_data *slab, unsigned short int index)
 	slab->alloc_blocks--;
 }
 
-void *malloc(size_t size)
+void *alloc_block(size_t bsz_index)
 {
-	size_t bsz_index = nearest_bsz_index(size);
 	struct slab_data *head_slab = head_slabs[bsz_index];
 	if (head_slab == NULL)
 	{
@@ -119,7 +116,16 @@ void *malloc(size_t size)
 		slab_init(head_slab, bsz_set[bsz_index]);
 		head_slabs[bsz_index] = head_slab;
 	}
-	return slab_alloc_block(head_slab);
+	void *ret = slab_alloc_block(head_slab);
+	if (head_slab->alloc_blocks == head_slab->block_count)
+		head_slabs[bsz_index] = head_slab->next;
+	return ret;
+}
+
+void *malloc(size_t size)
+{
+	size_t bsz_index = nearest_bsz_index(size);
+	return alloc_block(bsz_index);
 }
 
 void *calloc(size_t nmemb, size_t size)
