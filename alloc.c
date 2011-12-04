@@ -21,9 +21,16 @@ struct slab_data
 
 #define BSZS 13
 #define BSZMAX 2040
-const unsigned short int block_size_set[BSZS] =
+const unsigned short int bsz_set[BSZS] =
 	{4, 8, 16, 32, 48, 80, 120, 240, 340, 510, 816, 1360, 2040};
 struct slab_data *head_slabs[BSZS];
+
+size_t nearest_bsz_index(size_t size)
+{
+	size_t i = 0;
+	while (i < BSZS && size > bsz_set[i]) ++i;
+	return i;
+}
 
 struct free_block
 {
@@ -101,15 +108,16 @@ void slab_free_block(struct slab_data *slab, unsigned short int index)
 
 void *malloc(size_t size)
 {
-	struct slab_data *head_slab = head_slabs[0];
+	size_t bsz_index = nearest_bsz_index(size);
+	struct slab_data *head_slab = head_slabs[bsz_index];
 	if (head_slab == NULL)
 	{
 		size_t break_offset = (size_t)sbrk(0) % SLABSZ;
 		if (break_offset != 0)
 			sbrk(SLABSZ - break_offset);
 		head_slab = sbrk(SLABSZ);
-		slab_init(head_slab, 4);
-		head_slabs[0] = head_slab;
+		slab_init(head_slab, bsz_set[bsz_index]);
+		head_slabs[bsz_index] = head_slab;
 	}
 	return slab_alloc_block(head_slab);
 }
