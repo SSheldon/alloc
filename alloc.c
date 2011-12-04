@@ -45,6 +45,8 @@ void slab_init(struct slab_data *slab, unsigned short int block_size)
 
 void *slab_alloc_block(struct slab_data *slab)
 {
+	if (slab->alloc_blocks == slab->block_count)
+		return NULL;
 	unsigned short int index = slab->first_free;
 	struct free_block *free_data = slab_get_block(slab, index);
 	if (free_data->width > 1)
@@ -54,6 +56,7 @@ void *slab_alloc_block(struct slab_data *slab)
 	}
 	else slab->first_free = free_data->next;
 	slab->alloc_blocks++;
+	return free_data;
 }
 
 struct slab_data *head_slab = NULL;
