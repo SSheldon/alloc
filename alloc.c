@@ -80,11 +80,11 @@ void slab_free_block(struct slab_data *slab, unsigned short int index)
 	}
 	else
 	{
-		unsigned short int i = slab->first_free;
+		next = slab->first_free;
 		struct free_block *curr;
 		do
 		{
-			curr = slab_get_block(slab, i);
+			curr = slab_get_block(slab, next);
 			next = curr->next;
 		} while (next != 0 && next < index);
 		curr->next = index;
@@ -92,6 +92,7 @@ void slab_free_block(struct slab_data *slab, unsigned short int index)
 	struct free_block *block = slab_get_block(slab, index);
 	block->width = 1;
 	block->next = next;
+	slab->alloc_blocks--;
 }
 
 void *malloc(size_t size)
