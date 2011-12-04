@@ -19,6 +19,8 @@ struct slab_data
 	struct slab_data *next;
 };
 
+struct slab_data *head_slab = NULL;
+
 struct free_block
 {
 	unsigned short int next;
@@ -51,11 +53,15 @@ void *slab_alloc_block(struct slab_data *slab)
 	struct free_block *free_data = slab_get_block(slab, index);
 	if (free_data->width > 1)
 	{
-		free_data->width--;
+		struct free_block *new_first = slab_get_block(slab, index + 1);
+		new_first->next = free_data->next;
+		new_first->width = free_data->width - 1;
 		slab->first_free = index + 1;
 	}
 	else slab->first_free = free_data->next;
 	slab->alloc_blocks++;
+	if (slab->alloc_blocks == slab->block_count)
+		head_slab = NULL;
 	return free_data;
 }
 
@@ -87,8 +93,6 @@ void slab_free_block(struct slab_data *slab, unsigned short int index)
 	block->width = 1;
 	block->next = next;
 }
-
-struct slab_data *head_slab = NULL;
 
 void *malloc(size_t size)
 {
