@@ -151,7 +151,9 @@ void *realloc(void *ptr, size_t size)
 		return NULL;
 	}
 
-
-
-	return NULL;
+	size_t old_size = (struct slab_data *)((size_t)ptr & ~0xFFF)->block_size;
+	void *ret = malloc(size);
+	memcpy(ret, ptr, (old_size < size ? old_size : size));
+	free(ptr);
+	return ret;
 }
