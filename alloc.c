@@ -122,7 +122,10 @@ void free(void *ptr)
 	if (!ptr)
 		return;
 
-	return;
+	struct slab_data *slab = (struct slab_data *)((size_t)ptr & ~0xFFF);
+	unsigned short int index =
+		(((size_t)ptr & 0xFFF) - sizeof(struct slab_data)) / slab->block_size;
+	slab_free_block(slab, index);
 }
 
 void *realloc(void *ptr, size_t size)
