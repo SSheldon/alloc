@@ -25,6 +25,28 @@ void empty_slab_init(struct empty_slab *slab, size_t size)
 	empty_head = slab;
 }
 
+void *alloc_slabs(size_t slabs)
+{
+	if (slabs == 1 && empty_head != NULL)
+	{
+		struct empty_slab *slab = empty_head;
+		empty_head = slab->next;
+		if (slab->size > 1)
+		{
+			empty_slab_init((struct empty_slab *)((char *)slab + SLABSZ),
+				slab->size - 1);
+		}
+		return slab;
+	}
+	else
+	{
+		size_t break_offset = (size_t)sbrk(0) % SLABSZ;
+		if (break_offset != 0)
+			sbrk(SLABSZ - break_offset);
+		return sbrk(slabs * SLABSZ);
+	}
+}
+
 struct slab_data
 {
 	unsigned short int block_size;
@@ -141,10 +163,7 @@ void *alloc_block(size_t bsz_index)
 	struct slab_data *head_slab = head_slabs[bsz_index];
 	if (head_slab == NULL)
 	{
-		size_t break_offset = (size_t)sbrk(0) % SLABSZ;
-		if (break_offset != 0)
-			sbrk(SLABSZ - break_offset);
-		head_slab = sbrk(SLABSZ);
+		head_slab = alloc_slabs(1);
 		slab_init(head_slab, bsz_set[bsz_index]);
 		head_slabs[bsz_index] = head_slab;
 	}
@@ -166,10 +185,7 @@ struct big_slab
 void *alloc_big_slab(size_t size)
 {
 	size_t slabs = ((size + sizeof(struct big_slab) - 1) >> 12) + 1;
-	size_t break_offset = (size_t)sbrk(0) % SLABSZ;
-	if (break_offset != 0)
-		sbrk(SLABSZ - break_offset);
-	struct big_slab *slab = sbrk(slabs * SLABSZ);
+	struct big_slab *slab = alloc_slabs(slabs);
 	slab->header = 0;
 	slab->size = slabs;
 	return slab + 1;
