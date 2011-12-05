@@ -38,24 +38,30 @@ void empty_slab_init(struct empty_slab *slab, size_t size)
 
 void *alloc_slabs(size_t slabs)
 {
-	if (slabs == 1 && empty_head != NULL)
+	if (empty_head != NULL)
 	{
-		struct empty_slab *slab = empty_head;
-		empty_head = slab->next;
-		if (slab->size > 1)
+		struct empty_slab *prev = NULL, *curr = empty_head;
+		while (curr != NULL && curr->size < slabs)
 		{
-			empty_slab_init((struct empty_slab *)((char *)slab + SLABSZ),
-				slab->size - 1);
+			prev = curr;
+			curr = curr->next;
 		}
-		return slab;
+		if (curr != NULL)
+		{
+			if (prev != NULL)
+				prev->next = curr->next;
+			if (curr->size > slabs)
+			{
+				empty_slab_init((struct empty_slab *)
+					((char *)curr + (slabs << 12)), curr->size - slabs);
+			}
+			return curr;
+		}
 	}
-	else
-	{
-		size_t break_offset = (size_t)sbrk(0) % SLABSZ;
-		if (break_offset != 0)
-			sbrk(SLABSZ - break_offset);
-		return sbrk(slabs * SLABSZ);
-	}
+	size_t break_offset = (size_t)sbrk(0) % SLABSZ;
+	if (break_offset != 0)
+		sbrk(SLABSZ - break_offset);
+	return sbrk(slabs * SLABSZ);
 }
 
 struct slab_data
