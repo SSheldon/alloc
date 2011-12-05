@@ -222,6 +222,34 @@ void big_slab_free(struct big_slab *slab)
 	empty_slab_init((struct empty_slab *)slab, slab->size);
 }
 
+void *big_slab_realloc(struct big_slab *slab, size_t size)
+{
+	size_t slabs = ((size + sizeof(struct big_slab) - 1) >> 12) + 1;
+	if (slabs == slab->size)
+	{
+		return slab + 1;
+	}
+	else if (slabs < slab->size)
+	{
+		big_slab_shrink(slab, slabs);
+		return slab + 1;
+	}
+	else if ((size_t)slab + (slab->size << 12) == (size_t)sbrk(0))
+	{
+		sbrk((slabs - slab->size) << 12);
+		slab->size = slabs;
+		return slab + 1;
+	}
+	else
+	{
+		struct big_slab *new_slab = alloc_slabs(slabs);
+		memcpy(new_slab, slab, slab->size << 12);
+		new_slab->size = slabs;
+		big_slab_free(slab);
+		return new_slab + 1;
+	}
+}
+
 void *malloc(size_t size)
 {
 	if (size > BSZMAX)
@@ -291,6 +319,9 @@ void *realloc(void *ptr, size_t size)
 	{
 		old_size = (((struct big_slab *)slab)->size << 12) -
 			sizeof(struct big_slab);
+		/*
+		return big_slab_realloc((struct big_slab *)slab, size);
+		*/
 	}
 	void *ret = malloc(size);
 	memcpy(ret, ptr, (old_size < size ? old_size : size));
