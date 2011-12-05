@@ -120,6 +120,20 @@ void slab_free_block(struct slab_data *slab, unsigned short int index)
 	block->width = 1;
 	block->next = next;
 	slab->alloc_blocks--;
+	if (slab->alloc_blocks == 0)
+	{
+		if (head_slabs[bsz_index] == slab)
+			head_slabs[bsz_index] = slab->next;
+		else
+		{
+			struct slab_data *curr = head_slabs[bsz_index];
+			while (curr != NULL && curr->next != slab)
+				curr = curr->next;
+			if (curr != NULL)
+				curr->next = slab->next;
+		}
+		empty_slab_init((struct empty_slab *)slab, 1);
+	}
 }
 
 void *alloc_block(size_t bsz_index)
