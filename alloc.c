@@ -91,11 +91,14 @@ void *slab_alloc_block(struct slab_data *slab)
 
 void slab_free_block(struct slab_data *slab, unsigned short int index)
 {
+	unsigned short int bsz_index = nearest_bsz_index(slab->block_size);
 	unsigned short int next;
 	if (slab->alloc_blocks == slab->block_count)
 	{
 		next = 0;
 		slab->first_free = index;
+		slab->next = head_slabs[bsz_index];
+		head_slabs[bsz_index] = slab;
 	}
 	else if (slab->first_free > index)
 	{
@@ -133,7 +136,10 @@ void *alloc_block(size_t bsz_index)
 	}
 	void *ret = slab_alloc_block(head_slab);
 	if (head_slab->alloc_blocks == head_slab->block_count)
+	{
 		head_slabs[bsz_index] = head_slab->next;
+		head_slab->next = NULL;
+	}
 	return ret;
 }
 
