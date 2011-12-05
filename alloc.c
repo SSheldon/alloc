@@ -122,8 +122,32 @@ void *alloc_block(size_t bsz_index)
 	return ret;
 }
 
+struct big_slab
+{
+	size_t header;
+	size_t size;
+};
+
+void *alloc_big_slab(size_t size)
+{
+	size_t slabs = ((size + sizeof(struct big_slab) - 1) >> 12) + 1;
+	size_t break_offset = (size_t)sbrk(0) % SLABSZ;
+	if (break_offset != 0)
+		sbrk(SLABSZ - break_offset);
+	struct big_slab *slab = sbrk(slabs * SLABSZ);
+	slab->header = 0;
+	slab->size = slabs;
+	return slab + 1;
+}
+
+void big_slab_free(struct big_slab *slab)
+{
+}
+
 void *malloc(size_t size)
 {
+	if (size > BSZMAX)
+		return alloc_big_slab(size);
 	size_t bsz_index = nearest_bsz_index(size);
 	return alloc_block(bsz_index);
 }
@@ -148,9 +172,16 @@ void free(void *ptr)
 		return;
 
 	struct slab_data *slab = (struct slab_data *)((size_t)ptr & ~0xFFF);
-	unsigned short int index =
-		(((size_t)ptr & 0xFFF) - sizeof(struct slab_data)) / slab->block_size;
-	slab_free_block(slab, index);
+	if (slab->block_size == 0)
+	{
+		big_slab_free((struct big_slab *)slab);
+	}
+	else
+	{
+		unsigned short int index =
+			(((size_t)ptr & 0xFFF) - sizeof(struct slab_data)) / slab->block_size;
+		slab_free_block(slab, index);
+	}
 }
 
 void *realloc(void *ptr, size_t size)
@@ -176,7 +207,13 @@ void *realloc(void *ptr, size_t size)
 		return NULL;
 	}
 
-	size_t old_size = ((struct slab_data *)((size_t)ptr & ~0xFFF))->block_size;
+	struct slab_data *slab = (struct slab_data *)((size_t)ptr & ~0xFFF);
+	size_t old_size = slab->block_size;
+	if (old_size == 0)
+	{
+		old_size = (((struct big_slab *)slab)->size << 12) -
+			sizeof(struct big_slab);
+	}
 	void *ret = malloc(size);
 	memcpy(ret, ptr, (old_size < size ? old_size : size));
 	free(ptr);
