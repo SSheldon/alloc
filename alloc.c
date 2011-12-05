@@ -335,8 +335,19 @@ void *realloc(void *ptr, size_t size)
 	{
 		return big_slab_realloc((struct big_slab *)slab, size);
 	}
-	void *ret = malloc(size);
-	memcpy(ret, ptr, (old_size < size ? old_size : size));
-	free(ptr);
-	return ret;
+	else if (size <= old_size)
+		return ptr;
+	else
+	{
+		unsigned short int index =
+			(((size_t)ptr & 0xFFF) - sizeof(struct slab_data)) / slab->block_size;
+		void *ret;
+		if (size > BSZMAX)
+			ret = alloc_big_slab(size);
+		else
+			ret = alloc_block(nearest_bsz_index(size));
+		memcpy(ret, ptr, old_size);
+		slab_free_block(slab, index);
+		return ret;
+	}
 }
