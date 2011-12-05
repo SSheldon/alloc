@@ -208,6 +208,15 @@ void *alloc_big_slab(size_t size)
 	return slab + 1;
 }
 
+void big_slab_shrink(struct big_slab *slab, size_t new_slabs)
+{
+	size_t slabs_freed = slab->size - new_slabs;
+	slab->size = new_slabs;
+	struct empty_slab *empty = (struct empty_slab *)
+		((char *)slab + SLABSZ * new_slabs);
+	empty_slab_init(empty, slabs_freed);
+}
+
 void big_slab_free(struct big_slab *slab)
 {
 	empty_slab_init((struct empty_slab *)slab, slab->size);
