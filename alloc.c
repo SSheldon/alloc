@@ -27,16 +27,27 @@ void empty_slab_init(struct empty_slab *slab, size_t size)
 	}
 	slab->size = size;
 	struct empty_slab *prev = NULL, *curr = empty_head;
-	while (curr != NULL && curr->size < size)
+	while (curr != NULL && curr < slab)
 	{
 		prev = curr;
 		curr = curr->next;
 	}
 	if (prev != NULL)
-		prev->next = slab;
-	else
-		empty_head = slab;
-	slab->next = curr;
+	{
+		if ((size_t)prev + (prev->size << 12) == (size_t)slab)
+		{
+			prev->size += size;
+			slab = prev;
+		}
+		else prev->next = slab;
+	}
+	else empty_head = slab;
+	if ((size_t)slab + (slab->size << 12) == (size_t)curr)
+	{
+		slab->next = curr->next;
+		slab->size += curr->size;
+	}
+	else slab->next = curr;
 }
 
 void *alloc_slabs(size_t slabs)
