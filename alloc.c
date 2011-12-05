@@ -21,19 +21,17 @@ struct empty_slab *empty_head = NULL;
 void empty_slab_init(struct empty_slab *slab, size_t size)
 {
 	slab->size = size;
-	if (empty_head == NULL || empty_head->size >= size)
+	struct empty_slab *prev = NULL, *curr = empty_head;
+	while (curr != NULL && curr->size < size)
 	{
-		slab->next = empty_head;
-		empty_head = slab;
+		prev = curr;
+		curr = curr->next;
 	}
+	if (prev != NULL)
+		prev->next = slab;
 	else
-	{
-		struct empty_slab *curr = empty_head;
-		while (curr->next != NULL && curr->next->size < size)
-			curr = curr->next;
-		slab->next = curr->next;
-		curr->next = slab;
-	}
+		empty_head = slab;
+	slab->next = curr;
 }
 
 void *alloc_slabs(size_t slabs)
@@ -50,6 +48,8 @@ void *alloc_slabs(size_t slabs)
 		{
 			if (prev != NULL)
 				prev->next = curr->next;
+			else
+				empty_head = curr->next;
 			if (curr->size > slabs)
 			{
 				empty_slab_init((struct empty_slab *)
