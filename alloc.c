@@ -20,6 +20,11 @@ struct empty_slab *empty_head = NULL;
 
 void empty_slab_init(struct empty_slab *slab, size_t size)
 {
+	if ((size_t)slab + (size << 12) == (size_t)sbrk(0))
+	{
+		sbrk(-1 * (size << 12));
+		return;
+	}
 	slab->size = size;
 	struct empty_slab *prev = NULL, *curr = empty_head;
 	while (curr != NULL && curr->size < size)
