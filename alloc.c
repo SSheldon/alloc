@@ -10,6 +10,21 @@
 
 #define SLABSZ 4096
 
+struct empty_slab
+{
+	size_t size;
+	struct empty_slab *next;
+};
+
+struct empty_slab *empty_head = NULL;
+
+void empty_slab_init(struct empty_slab *slab, size_t size)
+{
+	slab->size = size;
+	slab->next = empty_head;
+	empty_head = slab;
+}
+
 struct slab_data
 {
 	unsigned short int block_size;
@@ -142,6 +157,7 @@ void *alloc_big_slab(size_t size)
 
 void big_slab_free(struct big_slab *slab)
 {
+	empty_slab_init((struct empty_slab *)slab, slab->size);
 }
 
 void *malloc(size_t size)
