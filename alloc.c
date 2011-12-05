@@ -333,11 +333,7 @@ void *realloc(void *ptr, size_t size)
 	size_t old_size = slab->block_size;
 	if (old_size == 0)
 	{
-		old_size = (((struct big_slab *)slab)->size << 12) -
-			sizeof(struct big_slab);
-		/*
 		return big_slab_realloc((struct big_slab *)slab, size);
-		*/
 	}
 	void *ret = malloc(size);
 	memcpy(ret, ptr, (old_size < size ? old_size : size));
