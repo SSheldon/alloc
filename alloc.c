@@ -1,12 +1,7 @@
-/*
- * CS 241
- * The University of Illinois
- */
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <string.h>
+#include <unistd.h>
 
 #define SLABSZ 4096
 
