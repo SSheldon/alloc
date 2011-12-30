@@ -57,24 +57,21 @@ void *alloc_slabs(size_t slabs)
 		}
 		if (curr != NULL)
 		{
+			struct empty_slab *next_empty;
 			if (curr->size == slabs)
 			{
-				if (prev != NULL)
-					prev->next = curr->next;
-				else
-					empty_head = curr->next;
+				next_empty = curr->next;
 			}
 			else
 			{
-				struct empty_slab *new_empty =
-					(struct empty_slab *)((char *)curr + (slabs << 12));
-				new_empty->size = curr->size - slabs;
-				new_empty->next = curr->next;
-				if (prev != NULL)
-					prev->next = new_empty;
-				else
-					empty_head = new_empty;
+				next_empty = (struct empty_slab *)((char *)curr + (slabs << 12));
+				next_empty->size = curr->size - slabs;
+				next_empty->next = curr->next;
 			}
+			if (prev != NULL)
+				prev->next = next_empty;
+			else
+				empty_head = next_empty;
 			return curr;
 		}
 	}
