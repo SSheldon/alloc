@@ -146,29 +146,17 @@ void slab_free_block(struct slab_data *slab, unsigned short int index)
 	if (slab->alloc_blocks == slab->block_count)
 	{
 		next = 0;
-		slab->first_free = index;
 		slab->next = head_slabs[bsz_index];
 		head_slabs[bsz_index] = slab;
-	}
-	else if (slab->first_free > index)
-	{
-		next = slab->first_free;
-		slab->first_free = index;
 	}
 	else
 	{
 		next = slab->first_free;
-		struct free_block *curr;
-		do
-		{
-			curr = slab_get_block(slab, next);
-			next = curr->next;
-		} while (next != 0 && next < index);
-		curr->next = index;
 	}
 	struct free_block *block = slab_get_block(slab, index);
 	block->width = 1;
 	block->next = next;
+	slab->first_free = index;
 	slab->alloc_blocks--;
 	if (slab->alloc_blocks == 0)
 	{
